@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import json
 import logging
+import traceback  # Added for better error tracking
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,6 +23,8 @@ class GlobalEntryChecker:
         self.location_id = location_id
         self.target_date = datetime.strptime(target_date, '%Y-%m-%d') if target_date else None
         self.check_interval = check_interval
+        
+        # Add headers for the request
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
@@ -70,6 +73,7 @@ class GlobalEntryChecker:
 
         except requests.exceptions.RequestException as e:
             print(f"Error checking appointments: {e}")
+            print(f"Full error: {traceback.format_exc()}")  # Added for better error tracking
             return None
 
     def send_notification(self, appointments):
@@ -85,6 +89,10 @@ class GlobalEntryChecker:
                 msg_text += f"Active Slots: {apt['active']}\n"
                 msg_text += f"Total Slots: {apt['total']}\n\n"
             
+            # Add the dashboard link
+            msg_text += "\nBook your appointment here:\n"
+            msg_text += "https://ttp.cbp.dhs.gov/dashboard\n"
+            
             msg = MIMEText(msg_text)
             msg['Subject'] = 'Global Entry Appointment Available!'
             msg['From'] = self.email_sender
@@ -98,13 +106,13 @@ class GlobalEntryChecker:
 
         except Exception as e:
             print(f"Error sending email notification: {e}")
+            print(f"Full error: {traceback.format_exc()}")  # Added for better error tracking
 
     def run(self):
         """Modified to run once when using GitHub Actions"""
         print(f"Starting Global Entry appointment checker for Salt Lake City...")
         print(f"Looking for appointments before: {self.target_date.strftime('%Y-%m-%d') if self.target_date else 'No date limit'}")
         
-        # Remove the while True loop for GitHub Actions
         appointments = self.check_appointments()
         
         if appointments:
@@ -112,9 +120,8 @@ class GlobalEntryChecker:
             self.send_notification(appointments)
 
 if __name__ == "__main__":
-    # Example usage
     checker = GlobalEntryChecker(
-        target_date="2025-05-01",  # Change this to your desired date
-        check_interval=600  # Checks every 5 minutes
+        target_date="2024-12-31",  # Change this to your desired date
+        check_interval=300  # Checks every 5 minutes
     )
     checker.run()
